@@ -22,6 +22,31 @@ files; existing logs are preserved. Generated results are ignored by Git.
 `requirements-dev.lock` records the dependencies used for foundation verification;
 optionally install it before the editable package to reproduce those versions.
 
+## Play in your browser
+
+```sh
+source .venv/bin/activate
+python -m leduc.ui
+```
+
+Open **http://127.0.0.1:8000**. Keep the terminal running; press Ctrl+C to stop.
+If that port is busy, use `python -m leduc.ui --port 8001` and open that port.
+No additional dependencies or frontend build are required. After reinstalling
+the editable package, `leduc-play` is also available as a shortcut.
+
+Play against the random agent using Fold, Check, Call, and Raise. The interface
+shows your private card, the shared card, the pot, legal actions, action history,
+and cumulative net chips. Opponent cards are sent to the browser only at showdown,
+and stay hidden after folds. Click **Deal next hand** after each result. **How to
+play** explains the rules. This is a local single-session UI: multiple tabs share
+the same game, and restarting the server starts a fresh score.
+
+Human sessions use independent deals, alternate player seats, and save decisions
+and outcomes to unique `results/human-*.jsonl` files. These research logs contain
+both players' observations and are not served to the browser. Add `--seed 123`
+to reproduce a session with the same human choices. Unlike the tournament runner,
+the human interface does not repeat deals in pairs.
+
 ## Fixed game rules
 
 Use **RLCard 1.2.0's `leduc-holdem`**: two players, six cards (two each of J, Q, K),
@@ -93,6 +118,9 @@ independent match seeds, not correlated paired hands, as replicates.
 src/leduc/interface.py           Observations, feedback, agent contract
 src/leduc/agents/random_agent.py Uniform legal-action baseline
 src/leduc/runner.py              RLCard adapter, paired matches, CLI, JSONL
+src/leduc/ui.py                  Local human-versus-agent server
+src/leduc/web/                   Browser interface (HTML, CSS, JavaScript)
 tests/test_runner.py             Integration and information-boundary checks
+tests/test_ui.py                 Human gameplay, scoring, and card privacy
 docs/work-plan.md                Balanced ownership and sequential milestones
 ```
