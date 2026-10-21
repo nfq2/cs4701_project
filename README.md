@@ -126,7 +126,7 @@ docs/work-plan.md                Balanced ownership and sequential milestones
 
 ## Fixed Bayesian agent
 
-Select **Bayesian agent** in the browser and click **Play selected agent**.
+Select **Bayesian agent** in the browser to start playing against it immediately.
 Changing opponents starts a fresh session. Restart creates a new agent instance;
 card beliefs also reset every hand. No opponent tendencies are learned across hands.
 

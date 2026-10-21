@@ -6,16 +6,35 @@
   <script src="/app.js" defer></script>
 </head>
 <body>
-<header><a class="brand" href="/">♠ <span>LEDUC</span></a><span class="live"><i></i> Human vs. AI</span></header>
+<header><a class="brand" href="/">♠ <span>LEDUC</span></a><nav class="header-help" aria-label="Game help"><button class="text-button" id="rules-button" aria-expanded="false" aria-controls="rules">How to play</button><button class="text-button" id="agents-button" aria-expanded="false" aria-controls="agent-guide">About the agents</button></nav></header>
 <main>
-  <div class="intro"><div><p class="eyebrow">SIX CARDS. EVERY DECISION COUNTS.</p><h1>Take a seat.</h1><p>A small deck. A little uncertainty. Your move.</p></div><button class="text-button" id="rules-button" aria-expanded="false" aria-controls="rules">How to play</button></div>
-  <section id="rules" class="rules" hidden><h2>A quick guide to Leduc</h2><p>The deck has two Jacks, two Queens, and two Kings. You and the agent each get one private card. Bet once, then a shared card is revealed for a second betting round. A pair with the shared card wins; otherwise, the higher private rank wins. Equal ranks split the pot.</p><p><b>Check</b> passes when no chips are owed. <b>Call</b> matches the bet. <b>Raise</b> increases it. <b>Fold</b> gives up the hand. Blinds are 1 and 2 chips; raises are 2 chips in round 1 and 4 in round 2, with two raises allowed per round. Your score is net chips won, not a limited bankroll.</p></section>
+  <section id="rules" class="agent-guide" hidden>
+    <div class="agent-guide-content">
+      <article><h2>The game</h2><p>The deck has two Jacks, two Queens, and two Kings. You and the agent each get one private card. After the first betting round, a shared card is revealed for a second betting round.</p><p>A pair with the shared card wins; otherwise, the higher private rank wins. Equal ranks split the pot.</p></article>
+      <article><h2>Your moves</h2><p><b>Check</b> passes when no chips are owed. <b>Call</b> matches the outstanding bet. <b>Raise</b> matches the bet and increases it. <b>Fold</b> gives up the hand.</p><p>Blinds are 1 and 2 chips. Raises increase the bet by 2 chips in round 1 and 4 in round 2, with at most two raises per round.</p></article>
+      <p class="agent-guide-note">Your score is net chips won, not a limited bankroll. Restart session resets your score and starts a fresh hand.</p>
+    </div>
+  </section>
+
+  <section id="agent-guide" class="agent-guide" hidden>
+    <div class="agent-guide-content">
+      <article><h2>Random agent</h2><p>Chooses equally among the legal actions on each turn. It does not consider hand strength or learn from your moves. This is our baseline for comparing strategies.</p></article>
+      <article><h2>Bayesian agent</h2><p>Starts with the possible cards you could hold, then updates their probabilities as you act and the shared card appears. It compares the expected chip payoff of each legal action and chooses the best one under its model.</p><p>It assumes stronger hands raise more often, while allowing for bluffing. Those assumptions stay fixed: it does not learn your personal playing style. Card beliefs reset every hand, and restarting creates a fresh agent.</p></article>
+      <p class="agent-guide-note">Both agents see their own card and public game information. Neither can see your private card during play.</p>
+    </div>
+  </section>
+
+  <div class="intro"><div><p class="eyebrow">SIX CARDS. EVERY DECISION COUNTS.</p><h1>Take a seat.</h1><p>A small deck. A little uncertainty. Your move.</p></div></div>
+
   <section class="opponent-picker" aria-label="Choose opponent">
-    <label for="opponent-select">Play against</label>
-    <select id="opponent-select"></select>
-    <button id="opponent-button" class="text-button">Play selected agent</button>
+    <span id="opponent-label">Play against</span>
+    <div class="agent-dropdown" id="agent-dropdown">
+      <input type="hidden" id="opponent-select" value="random">
+      <button type="button" class="agent-trigger" id="agent-trigger" aria-haspopup="menu" aria-expanded="false" aria-controls="agent-menu" aria-labelledby="opponent-label agent-choice" disabled><span id="agent-choice">Loading agents…</span><span class="agent-chevron" aria-hidden="true"></span></button>
+      <div id="agent-menu" class="agent-menu" role="menu" aria-labelledby="opponent-label" hidden></div>
+    </div>
     <button id="restart-button" class="text-button">Restart session</button>
-    <p>Restarting or changing opponents starts a new session and resets your score.</p>
+    <p>Changing agents starts a new session and resets your score.</p>
   </section>
   <div class="layout">
     <section class="game" aria-label="Poker table">

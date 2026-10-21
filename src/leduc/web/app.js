@@ -31,15 +31,10 @@ function actionButton(label, action, style = '', next = false) {
 function render() {
   if (!state) return;
   const picker = $('opponent-select');
-  if (!picker.options.length) {
-    for (const opponent of state.opponents) {
-      const option = document.createElement('option');
-      option.value = opponent.id; option.textContent = opponent.name; picker.append(option);
-    }
-  }
   if (!busy) picker.value = state.opponent;
-  picker.disabled = busy;
-  $('opponent-button').disabled = busy;
+  $('agent-trigger').disabled = busy;
+  if (busy) closeAgentMenu(false);
+  updateAgentMenu();
   $('restart-button').disabled = busy;
   $('bot-name').textContent = state.opponent_name;
   $('bot-avatar').textContent = state.opponent_name[0];
@@ -103,13 +98,77 @@ async function send(url, body) {
   } finally { busy = false; render(); }
 }
 $('restart-button').addEventListener('click', () => send('/api/restart', {}));
-$('opponent-button').addEventListener('click', () => send('/api/opponent', {opponent: $('opponent-select').value}));
-$('rules-button').addEventListener('click', () => {
-  $('rules').hidden = !$('rules').hidden;
-  $('rules-button').setAttribute('aria-expanded', String(!$('rules').hidden));
-});
+function toggleHelp(selected) {
+  const panels = [['rules-button', 'rules'], ['agents-button', 'agent-guide']];
+  const open = $(selected).hidden;
+  for (const [button, panel] of panels) {
+    const visible = panel === selected && open;
+    $(panel).hidden = !visible;
+    $(button).setAttribute('aria-expanded', String(visible));
+  }
+}
+$('rules-button').addEventListener('click', () => toggleHelp('rules'));
 load().catch(error => {
   $('status').textContent = 'The table is unavailable.';
   $('hint').textContent = 'Check that the Python server is running, then refresh.';
   $('error').textContent = error.message; $('error').hidden = false;
+});
+
+$('agents-button').addEventListener('click', () => toggleHelp('agent-guide'));
+
+function closeAgentMenu(restoreFocus = true) {
+  $('agent-menu').hidden = true;
+  $('agent-trigger').setAttribute('aria-expanded', 'false');
+  if (restoreFocus) $('agent-trigger').focus();
+}
+function updateAgentMenu() {
+  const selected = $('opponent-select').value;
+  $('agent-choice').textContent = state.opponents.find(o => o.id === selected)?.name || state.opponent_name;
+  $('agent-menu').replaceChildren();
+  for (const opponent of state.opponents) {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.setAttribute('role', 'menuitemradio');
+    option.setAttribute('aria-checked', String(opponent.id === selected));
+    option.textContent = opponent.name;
+    option.addEventListener('click', () => {
+      $('opponent-select').value = opponent.id;
+      updateAgentMenu();
+      closeAgentMenu();
+      if (opponent.id !== state.opponent) send('/api/opponent', {opponent: opponent.id});
+    });
+    $('agent-menu').append(option);
+  }
+}
+function openAgentMenu(last = false) {
+  if (!state || busy) return;
+  $('agent-menu').hidden = false;
+  $('agent-trigger').setAttribute('aria-expanded', 'true');
+  const options = [...$('agent-menu').children];
+  (last ? options.at(-1) : options.find(o => o.getAttribute('aria-checked') === 'true') || options[0])?.focus();
+}
+$('agent-trigger').addEventListener('click', () => {
+  if ($('agent-menu').hidden) openAgentMenu(); else closeAgentMenu();
+});
+$('agent-trigger').addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault(); openAgentMenu(event.key === 'ArrowUp');
+  }
+});
+$('agent-menu').addEventListener('keydown', event => {
+  const options = [...$('agent-menu').children];
+  const index = options.indexOf(document.activeElement);
+  if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 :
+      (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+    options[next].focus();
+  } else if (event.key === 'Escape') { event.preventDefault(); closeAgentMenu(); }
+  else if (event.key === 'Tab') closeAgentMenu(false);
+});
+document.addEventListener('click', event => {
+  if (!$('agent-dropdown').contains(event.target)) closeAgentMenu(false);
+});
+$('agent-dropdown').addEventListener('focusout', event => {
+  if (!$('agent-dropdown').contains(event.relatedTarget)) closeAgentMenu(false);
 });
