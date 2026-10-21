@@ -79,7 +79,7 @@ def test_session_seed_replays_human_actions():
 def test_opponent_selection_validates_choices_without_changing_game():
     game = HumanGame(seed=123)
     before = game.view()
-    assert [o['id'] for o in before['opponents']] == ['random']
+    assert {o['id'] for o in before['opponents']} == {'random', 'bayesian'}
     assert game.change_opponent('random') == before
     for invalid in ('missing', None, [], {}):
         with pytest.raises(ValueError):
@@ -88,7 +88,8 @@ def test_opponent_selection_validates_choices_without_changing_game():
 
 
 
-def test_restart_resets_score_and_hand_and_keeps_opponent():
+def test_restart_resets_score_and_hand_and_keeps_opponent(monkeypatch):
+    monkeypatch.setattr("leduc.ui.secrets.randbits", lambda bits: 123)
     log = io.StringIO()
     game = HumanGame(seed=123, log=log)
     game.act('fold')

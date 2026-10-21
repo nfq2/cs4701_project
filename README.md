@@ -1,8 +1,7 @@
 # CS 4701: Leduc Hold'em agents
 
 Compare seven agents: random, heuristic, fixed Bayesian, adaptive Bayesian,
-supervised learning, Q-learning, and LLM. The shared foundation and our random
-baseline are implemented. See [the team work plan](docs/work-plan.md) for the rest.
+supervised learning, Q-learning, and LLM. The shared foundation, random baseline, and fixed Bayesian agent are implemented. See [the team work plan](docs/work-plan.md) for the rest.
 
 ## Setup
 
@@ -124,3 +123,23 @@ tests/test_runner.py             Integration and information-boundary checks
 tests/test_ui.py                 Human gameplay, scoring, and card privacy
 docs/work-plan.md                Balanced ownership and sequential milestones
 ```
+
+## Fixed Bayesian agent
+
+Select **Bayesian agent** in the browser and click **Play selected agent**.
+Changing opponents starts a fresh session. Restart creates a new agent instance;
+card beliefs also reset every hand. No opponent tendencies are learned across hands.
+
+The agent enumerates the five other physical cards, conditions on the public
+card, and applies Bayes' rule to the opponent's observed actions. It reconstructs
+beliefs from the public history each turn so no action is counted twice. Its
+fixed action-likelihood model uses smoothed hand-strength weights, allowing
+bluffing and weak decisions; these are explicit assumptions, not trained values.
+
+It searches the remaining betting tree with the two-raise cap, marginalizes over
+future public cards and opponent responses, and maximizes expected net chips.
+Future decisions use updated card distributions, not knowledge of a sampled
+opponent card. The model follows RLCard 1.2.0's fixed blind/raise rules.
+Performance depends on the assumed opponent policy; this is not an equilibrium
+solver or the adaptive Bayesian agent. Likelihood weights live in
+`src/leduc/agents/bayesian_agent.py`.
