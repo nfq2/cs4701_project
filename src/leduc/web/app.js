@@ -57,7 +57,7 @@ function render() {
     $('hint').textContent = state.showdown ? 'Showdown. Both private cards are revealed.' : `${state.history.at(-1).actor === 'You' ? 'You folded' : 'The agent folded'}. Private cards stay private.`;
     actionButton('Deal next hand  →', null, 'primary', true);
   } else {
-    $('status').textContent = 'Your move.';
+    $('status').textContent = busy ? 'Waiting for the agent…' : 'Your move.';
     $('hint').textContent = state.to_call ? `${state.to_call} chips to call. Raise, match the bet, or fold.` : 'No bet to match. Check to continue or raise the stakes.';
     const labels = {fold:'Fold', check:'Check', call:`Call ${state.to_call}`, raise:`Raise +${state.raise_by}`};
     for (const action of ['fold','check','call','raise']) {

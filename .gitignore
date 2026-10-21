@@ -7,3 +7,6 @@ build/
 dist/
 results/
 .DS_Store
+
+.env
+.env.*

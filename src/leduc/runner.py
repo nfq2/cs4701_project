@@ -11,7 +11,8 @@ from typing import TextIO
 
 import rlcard
 
-from leduc.agents import RandomAgent
+from leduc.agents import AGENTS
+from leduc.agents.factory import add_agent_options, create_agent
 from leduc.interface import ActionEvent, Agent, HandResult, Observation
 
 BIG_BLIND_CHIPS = 2
@@ -42,10 +43,12 @@ def run_match(
     seed: int = 0,
     names: tuple[str, str] = ("agent_a", "agent_b"),
     log: TextIO | None = None,
+    deal_policy: str | None = None,
 ) -> dict:
-    """Run independent hands, preserving agent memory within a match.
+    """Run hands with alternating seats, preserving agent memory within a match.
 
-    Consecutive hands replay an initial deal with swapped agent seats. Thus each
+    By default, memory agents get independent deals. Otherwise consecutive
+    hands replay an initial deal with swapped agent seats. Thus each
     agent gets both blind positions and private cards in every pair. Pair outcomes
     are correlated; use independent matches for later confidence intervals.
     """
@@ -62,6 +65,13 @@ def run_match(
         if log is not None:
             log.write(json.dumps(record, sort_keys=True) + "\n")
 
+    memory_agent = any(getattr(a, "requires_independent_deals", False) for a in agents)
+    if deal_policy is None:
+        deal_policy = "independent" if memory_agent else "paired"
+    if deal_policy not in ("paired", "independent"):
+        raise ValueError("deal_policy must be paired or independent")
+    if memory_agent and deal_policy == "paired":
+        raise ValueError("Memory agents require independent deals to avoid hidden-card leakage")
     rng = random.Random(seed)
     agent_seeds = [rng.getrandbits(32) for _ in agents]
     for agent, agent_seed in zip(agents, agent_seeds):
@@ -69,14 +79,16 @@ def run_match(
     env = rlcard.make("leduc-holdem", config={"seed": seed % (2**32)})
     emit({"type": "match_start", "schema_version": 1, "seed": seed,
           "hands": hands, "agents": names, "agent_seeds": agent_seeds,
+          "agent_configurations": [a.configuration() for a in agents],
           "rlcard_version": "1.2.0", "payoff_unit": "chips",
           "small_blind": 1, "big_blind": BIG_BLIND_CHIPS,
-          "seat_policy": "paired_initial_deals_swapped_agents"})
+          "seat_policy": ("paired_initial_deals_swapped_agents" if deal_policy == "paired"
+                          else "independent_deals_alternating_seats")})
     totals = [0.0, 0.0]
     decisions = [0, 0]
     seconds = [0.0, 0.0]
     for hand_index in range(hands):
-        if hand_index % 2 == 0:
+        if deal_policy == "independent" or hand_index % 2 == 0:
             deal_seed = rng.getrandbits(32)
         env.seed(deal_seed)
         state, seat = env.reset()
@@ -86,7 +98,7 @@ def run_match(
         for player_seat, agent_index in enumerate(seat_to_agent):
             agents[agent_index].on_hand_start(hand_index=hand_index, seat=player_seat)
         emit({"type": "hand_start", "hand_index": hand_index,
-              "pair_index": hand_index // 2, "deal_seed": deal_seed,
+              "pair_index": hand_index // 2 if deal_policy == "paired" else None, "deal_seed": deal_seed,
               "seat_to_agent": seat_to_agent, "small_blind_seat": small_blind_seat})
         while not env.is_over():
             observation = make_observation(
@@ -106,7 +118,8 @@ def run_match(
             seconds[agent_index] += elapsed
             emit({"type": "action", "agent_index": agent_index,
                   "observation": asdict(observation), "action": action,
-                  "decision_seconds": elapsed})
+                  "decision_seconds": elapsed,
+                  "agent_metadata": agents[agent_index].decision_metadata()})
             history.append(ActionEvent(seat, observation.round_index, action))
             state, seat = env.step(action, raw_action=True)
 
@@ -130,6 +143,7 @@ def run_match(
               "history": [asdict(event) for event in history]})
     summary = {"type": "match_summary", "seed": seed, "hands": hands,
                "agents": {name: {
+                   **agents[i].statistics(),
                    "total_chips": totals[i], "chips_per_hand": totals[i] / hands,
                    "decisions": decisions[i],
                    "mean_decision_seconds": seconds[i] / decisions[i] if decisions[i] else 0.0,
@@ -144,14 +158,24 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", type=Path,
                         help="New log path (default: unique file in results/)")
+    parser.add_argument("--agent-a", choices=tuple(AGENTS), default="random")
+    parser.add_argument("--agent-b", choices=tuple(AGENTS), default="random")
+    parser.add_argument("--deal-policy", choices=("paired", "independent"),
+                        help="Default: independent for memory agents, paired otherwise")
+    add_agent_options(parser)
     args = parser.parse_args()
     if args.hands <= 0 or args.hands % 2 or args.seed < 0:
         parser.error("--hands must be positive and even; --seed must be nonnegative")
+    try:
+        agents = (create_agent(args.agent_a, args), create_agent(args.agent_b, args))
+    except ValueError as exc:
+        parser.error(str(exc))
+    names = (f"{args.agent_a}_a", f"{args.agent_b}_b")
     if args.output is None:
         Path("results").mkdir(parents=True, exist_ok=True)
         log_file = tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", dir="results",
-            prefix=f"random-seed-{args.seed}-", suffix=".jsonl", delete=False,
+            prefix=f"{args.agent_a}-vs-{args.agent_b}-seed-{args.seed}-", suffix=".jsonl", delete=False,
         )
         output = Path(log_file.name)
     else:
@@ -163,8 +187,8 @@ def main():
             parser.error(f"Output already exists: {output}. Choose a new --output "
                          "path or omit --output for an automatic filename.")
     with log_file as log:
-        summary = run_match((RandomAgent(), RandomAgent()), hands=args.hands,
-                            seed=args.seed, names=("random_a", "random_b"), log=log)
+        summary = run_match(agents, hands=args.hands,
+                            seed=args.seed, names=names, log=log, deal_policy=args.deal_policy)
     print(json.dumps(summary, indent=2))
     print(f"Log: {output}")
 

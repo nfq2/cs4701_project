@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import rlcard
 
 from leduc.agents import AGENTS
+from leduc.agents.factory import add_agent_options, create_agent
 from leduc.interface import ActionEvent, HandResult
 from leduc.runner import BIG_BLIND_CHIPS, make_observation
 
@@ -20,13 +21,14 @@ from leduc.runner import BIG_BLIND_CHIPS, make_observation
 class HumanGame:
     """One human session. Browser state never contains hidden opponent cards."""
 
-    def __init__(self, seed=None, log=None, opponent="random"):
+    def __init__(self, seed=None, log=None, opponent="random", agent=None, agent_factory=None):
         self.seed = secrets.randbits(32) if seed is None else seed
         self.env = rlcard.make("leduc-holdem", config={"seed": self.seed})
         if not isinstance(opponent, str) or opponent not in AGENTS:
             raise ValueError("Unknown opponent.")
         self.opponent = opponent
-        self.agent = AGENTS[opponent]["factory"]()
+        self.agent_factory = agent_factory or (lambda name: AGENTS[name]["factory"]())
+        self.agent = agent if agent is not None else self.agent_factory(opponent)
         self.agent.on_match_start(seed=self.seed ^ 0xA5A5A5A5)
         self.log = log
         self.hand_index = -1
@@ -35,7 +37,8 @@ class HumanGame:
         self.completed = 0
         self.last_payoff = None
         self.emit({"type": "session_start", "seed": self.seed,
-                   "opponent": self.opponent, "payoff_unit": "chips",
+                   "opponent": self.opponent, "agent_configuration": self.agent.configuration(),
+                   "payoff_unit": "chips",
                    "deal_policy": "independent_hands_alternating_seats"})
         self.next_hand()
 
@@ -45,11 +48,13 @@ class HumanGame:
             self.log.flush()
 
     def restart(self):
+        agent = self.agent_factory(self.opponent)
         revision = self.revision
         self.emit({"type": "session_end", "reason": "restart",
                    "opponent": self.opponent, "completed": self.completed,
                    "total_chips": self.total})
-        self.__init__(log=self.log, opponent=self.opponent)
+        self.__init__(log=self.log, opponent=self.opponent, agent=agent,
+                      agent_factory=self.agent_factory)
         self.revision = revision + 1
         return self.view()
 
@@ -58,12 +63,14 @@ class HumanGame:
             raise ValueError("Unknown opponent.")
         if opponent == self.opponent:
             return self.view()
+        agent = self.agent_factory(opponent)
         # Explicitly start a fresh session; never mix scores across opponents.
         revision = self.revision
         self.emit({"type": "session_end", "reason": "opponent_changed",
                    "opponent": self.opponent, "completed": self.completed,
                    "total_chips": self.total})
-        self.__init__(seed=self.seed, log=self.log, opponent=opponent)
+        self.__init__(seed=self.seed, log=self.log, opponent=opponent, agent=agent,
+                      agent_factory=self.agent_factory)
         self.revision = revision + 1
         return self.view()
 
@@ -96,7 +103,8 @@ class HumanGame:
             raise ValueError("That action is not legal right now.")
         self.emit({"type": "action", "actor": "human" if self.seat == self.human_seat else self.opponent,
                    "observation": asdict(observation), "action": action,
-                   "decision_seconds": elapsed})
+                   "decision_seconds": elapsed,
+                   "agent_metadata": self.agent.decision_metadata() if self.seat == self.bot_seat else {}})
         self.history.append(ActionEvent(self.seat, observation.round_index, action))
         self.state, self.seat = self.env.step(action, raw_action=True)
 
@@ -121,7 +129,8 @@ class HumanGame:
             ))
             self.emit({"type": "hand_end", "hand_index": self.hand_index,
                        "human_payoff_chips": self.last_payoff,
-                       "human_total_chips": self.total, "showdown": showdown})
+                       "human_total_chips": self.total, "showdown": showdown,
+                       "agent_statistics": self.agent.statistics()})
         self.turn_started = perf_counter()
 
     def act(self, action):
@@ -233,13 +242,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--seed", type=int, help="Optional reproducible session seed")
+    parser.add_argument("--opponent", choices=tuple(AGENTS), default="random")
+    add_agent_options(parser)
+    parser.set_defaults(llm_provider="groq", llm_model="openai/gpt-oss-120b",
+                        llm_reasoning_effort="low", llm_max_tokens=2048)
     args = parser.parse_args()
+    agent_factory = lambda name: create_agent(name, args)
+    try:
+        agent = agent_factory(args.opponent)
+    except ValueError as exc:
+        parser.error(str(exc))
     if not 1 <= args.port <= 65535 or (args.seed is not None and not 0 <= args.seed < 2**32):
         parser.error("Port must be 1–65535; seed must be between 0 and 2^32 - 1.")
     Path("results").mkdir(exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir="results",
                                      prefix="human-", suffix=".jsonl", delete=False) as log:
-        game = HumanGame(seed=args.seed, log=log)
+        game = HumanGame(seed=args.seed, log=log, opponent=args.opponent,
+                         agent=agent, agent_factory=agent_factory)
         try:
             server = HTTPServer(("127.0.0.1", args.port), make_handler(game))
         except OSError as exc:

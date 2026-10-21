@@ -20,7 +20,9 @@
     <div class="agent-guide-content">
       <article><h2>Random agent</h2><p>Chooses equally among the legal actions on each turn. It does not consider hand strength or learn from your moves. This is our baseline for comparing strategies.</p></article>
       <article><h2>Bayesian agent</h2><p>Starts with the possible cards you could hold, then updates their probabilities as you act and the shared card appears. It compares the expected chip payoff of each legal action and chooses the best one under its model.</p><p>It assumes stronger hands raise more often, while allowing for bluffing. Those assumptions stay fixed: it does not learn your personal playing style. Card beliefs reset every hand, and restarting creates a fresh agent.</p></article>
-      <p class="agent-guide-note">Both agents see their own card and public game information. Neither can see your private card during play.</p>
+      <article><h2>LLM without memory</h2><p>Uses a hosted language model to choose a legal action from its own card and the current hand’s public information. It sees all betting actions in this hand, but does not remember earlier hands.</p></article>
+      <article><h2>LLM with full memory</h2><p>Uses the same model and also receives every completed hand’s visible actions and outcomes from this session. It remembers its own cards and your cards only when revealed at showdown. Restarting or changing opponents clears its memory.</p></article>
+      <p class="agent-guide-note">All agents see their own card and public game information. None can see your hidden private card. LLM requests can take a few seconds; API failures or exhausted limits use a logged random legal action.</p>
     </div>
   </section>
 

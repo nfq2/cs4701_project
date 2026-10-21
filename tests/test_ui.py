@@ -79,7 +79,7 @@ def test_session_seed_replays_human_actions():
 def test_opponent_selection_validates_choices_without_changing_game():
     game = HumanGame(seed=123)
     before = game.view()
-    assert {o['id'] for o in before['opponents']} == {'random', 'bayesian'}
+    assert {o['id'] for o in before['opponents']} == {'random', 'bayesian', 'llm', 'llm-memory'}
     assert game.change_opponent('random') == before
     for invalid in ('missing', None, [], {}):
         with pytest.raises(ValueError):
@@ -106,3 +106,50 @@ def test_restart_resets_score_and_hand_and_keeps_opponent(monkeypatch):
     assert game.restart()['revision'] > revision
     records = [json.loads(line) for line in log.getvalue().splitlines()]
     assert sum(r['type'] == 'session_end' and r['reason'] == 'restart' for r in records) == 2
+
+
+def test_llm_switch_and_restart_preserve_configuration_and_reset_memory(monkeypatch):
+    from leduc.agents import LLMAgent, MemoryLLMAgent, AGENTS
+    made = []
+    def factory(name):
+        if name in ('llm', 'llm-memory'):
+            cls = MemoryLLMAgent if name == 'llm-memory' else LLMAgent
+            agent = cls(model='test-model', provider='groq', max_calls=9,
+                        reasoning_effort='low', completion=lambda payload: {
+                            'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps({
+                                'action': 'check' if 'check' in json.loads(payload['messages'][1]['content'])['legal_actions'] else 'call'
+                            })}}]})
+        else:
+            agent = AGENTS[name]['factory']()
+        made.append(agent)
+        return agent
+    monkeypatch.setattr('leduc.ui.secrets.randbits', lambda bits: 123)
+    log = io.StringIO()
+    game = HumanGame(seed=123, log=log, agent_factory=factory)
+    game.change_opponent('llm-memory')
+    original = game.agent
+    game.act('fold')
+    assert len(original._completed_hands) == 1
+    revision = game.revision
+    game.restart()
+    assert game.agent is not original
+    assert game.agent._completed_hands == []
+    assert game.agent.configuration()['model'] == 'test-model'
+    assert game.agent.max_calls == 9
+    assert game.revision > revision
+    game.change_opponent('llm')
+    assert type(game.agent) is LLMAgent
+    game.change_opponent('bayesian')
+    assert game.view()['opponent'] == 'bayesian'
+    records = [json.loads(line) for line in log.getvalue().splitlines()]
+    assert any(r.get('agent_configuration', {}).get('memory') == 'full_visible_history' for r in records)
+    assert any(r.get('reason') == 'opponent_changed' for r in records)
+
+
+def test_unavailable_llm_does_not_destroy_current_session(monkeypatch):
+    monkeypatch.delenv('GROQ_API_KEY', raising=False)
+    game = HumanGame(seed=123)
+    before = game.view()
+    with pytest.raises(ValueError, match='GROQ_API_KEY'):
+        game.change_opponent('llm')
+    assert game.view() == before

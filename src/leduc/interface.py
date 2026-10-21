@@ -62,3 +62,13 @@ class Agent(ABC):
 
     def on_hand_end(self, result: HandResult) -> None:
         pass
+
+    def configuration(self) -> dict:
+        """Public experiment settings; never return credentials."""
+        return {"agent_class": type(self).__name__}
+
+    def decision_metadata(self) -> dict:
+        return {}
+
+    def statistics(self) -> dict:
+        return {}
