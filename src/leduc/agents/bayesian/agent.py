@@ -1,11 +1,12 @@
 """Fixed Bayesian opponent model and belief-state search for RLCard Leduc.
 
-No environment, hidden cards, or cross-hand opponent learning is used. The
-likelihood weights below are assumptions, not fitted probabilities.
+No environment, hidden cards, or cross-hand opponent learning is used. Action
+likelihoods are fitted offline from simulated styles and frozen during play.
 """
 from functools import lru_cache
 
 from leduc.interface import Agent, Observation
+from .opponent_model import OpponentModel
 
 CARDS = tuple(suit + rank for suit in ('S', 'H') for rank in ('J', 'Q', 'K'))
 
@@ -15,17 +16,6 @@ def legal_actions(chips, turn, raises):
                  if not (a == 'raise' and raises >= 2)
                  and not (a == 'check' and chips[turn] < max(chips))
                  and not (a == 'call' and chips[turn] == max(chips)))
-
-
-def action_probabilities(card, public, legal):
-    """Smoothed hand-strength policy; all legal actions have positive support."""
-    strength = (('JQK'.index(card[1]) + 1) / 4 if public is None else
-                .95 if card[1] == public[1] else ('JQK'.index(card[1]) + 1) / 6)
-    weights = {'raise': .1 + 1.8 * strength ** 2,
-               'fold': .05 + (1 - strength) ** 2,
-               'call': .3 + strength, 'check': 1.0}
-    total = sum(weights[a] for a in legal)
-    return {a: weights[a] / total for a in legal}
 
 
 def normalize(weights):
@@ -49,9 +39,14 @@ def advance(chips, turn, raises, quiet, action, round_index):
 
 
 class BayesianAgent(Agent):
-    def __init__(self):
+    def __init__(self, model_path=None):
+        self.model = OpponentModel.load(model_path)
         self.posterior = {}
         self.last_action_values = {}
+
+    def configuration(self):
+        return {"agent_class": type(self).__name__, "likelihood_model": dict(self.model.metadata),
+                "smoothing_alpha": self.model.alpha}
 
     def on_match_start(self, *, seed):
         self.on_hand_start(hand_index=0, seat=0)
@@ -77,7 +72,7 @@ class BayesianAgent(Agent):
             public = observation.public_card if rnd else None
             if event.seat != seat:
                 legal = legal_actions(chips, turn, raises)
-                belief = normalize(tuple(w * action_probabilities(c, public, legal)[event.action]
+                belief = normalize(tuple(w * self.model.probabilities(c, public, legal, max(chips) - chips[turn], raises)[event.action]
                                          for c, w in zip(candidates, belief)))
             chips, turn, raises, quiet = advance(chips, turn, raises, quiet, event.action, rnd)
         if observation.round_index != rnd:
@@ -115,7 +110,7 @@ class BayesianAgent(Agent):
                 return max(action_value(a, chips, turn, raises, quiet, rnd, public, belief) for a in legal)
             total = 0.0
             for action in legal:
-                weighted = tuple(w * action_probabilities(c, public, legal)[action]
+                weighted = tuple(w * self.model.probabilities(c, public, legal, max(chips) - chips[turn], raises)[action]
                                  for c, w in zip(candidates, belief))
                 mass = sum(weighted)
                 if mass:

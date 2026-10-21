@@ -1,12 +1,12 @@
 from .random_agent import RandomAgent
-from .bayesian_agent import BayesianAgent
+from .bayesian import BayesianAgent
 from .llm_agent import LLMAgent, MemoryLLMAgent
 
 # Register additional agents here once they are implemented.
 AGENTS = {
     "bayesian": {
         "name": "Bayesian agent",
-        "description": "Updates beliefs about your card from your actions and chooses the highest expected chip payoff under a fixed opponent model. Beliefs reset every hand.",
+        "description": "Updates beliefs about your card from your actions and chooses the highest expected chip payoff under a fixed opponent model estimated from simulated games. Beliefs reset every hand.",
         "factory": BayesianAgent,
     },
     "llm": {

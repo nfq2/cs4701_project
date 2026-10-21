@@ -247,13 +247,46 @@ card beliefs also reset every hand. No opponent tendencies are learned across ha
 The agent enumerates the five other physical cards, conditions on the public
 card, and applies Bayes' rule to the opponent's observed actions. It reconstructs
 beliefs from the public history each turn so no action is counted twice. Its
-fixed action-likelihood model uses smoothed hand-strength weights, allowing
-bluffing and weak decisions; these are explicit assumptions, not trained values.
+fixed action-likelihood model is fitted from simulated tight, aggressive,
+bluff-heavy, calling-heavy, and balanced opponents. These are synthetic policies,
+not human data. The deployed agent reads frozen action counts; it does not call
+the style policies or fit anything during play.
 
 It searches the remaining betting tree with the two-raise cap, marginalizes over
 future public cards and opponent responses, and maximizes expected net chips.
 Future decisions use updated card distributions, not knowledge of a sampled
 opponent card. The model follows RLCard 1.2.0's fixed blind/raise rules.
 Performance depends on the assumed opponent policy; this is not an equilibrium
-solver or the adaptive Bayesian agent. Likelihood weights live in
-`src/leduc/agents/bayesian_agent.py`.
+solver or the adaptive Bayesian agent. The bundled snapshot lives in
+`src/leduc/agents/bayesian/models/bayesian-v1.json` and is included in installed packages.
+
+### Reproducing Bayesian likelihood estimation
+
+```sh
+python -m leduc.agents.bayesian.train --hands-per-style 5000 --heldout-hands-per-style 1000 --seed 4701 --heldout-seed 94701 --data results/bayesian-training-rerun.jsonl --output results/bayesian-model-rerun.json
+```
+
+This generates 25,000 independent training hands (5,000 per focal style),
+alternates focal seats, and rotates opponents among the five styles and random.
+Each record contains the focal player's own card, public context, chosen action,
+and game ID. These are offline research records and are never exposed to live
+players. Existing datasets are preserved; use a new `--data` path for each run.
+
+The model estimates `P(action | private rank, public rank, legal actions,
+amount to call, raises this round)` from counts with Laplace smoothing (alpha 1).
+Sparse/unseen contexts back off to card/public/legal, then legal-action counts,
+then uniform legal actions. Suits are equivalent for hand strength. Counts pool
+decisions from equal hands per style, so styles producing longer hands contribute
+more decisions; this is a fixed empirical mixture, not online style inference.
+The model omits richer history and position features; it is an approximation.
+
+Training uses seed 4701; held-out scoring uses independent games with seed 94701.
+The snapshot records generator settings, style parameters, decision counts, and
+held-out metrics. Log loss measures action-probability quality; it is separate
+from chip payoff. Neither generated style parameters nor the snapshot are tuned
+on final human evaluation. Synthetic policies remain assumptions, and performance
+against these styles does not establish performance against humans.
+
+`BayesianAgent(model_path="...")` can load another frozen snapshot. Change the
+bundled snapshot only through an explicit offline training run, and freeze it
+before final evaluation. Model metadata is included in match/session logs.

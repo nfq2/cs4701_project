@@ -18,6 +18,7 @@ leduc-play = "leduc.ui:main"
 
 [tool.setuptools.package-data]
 leduc = ["web/*.html", "web/*.css", "web/*.js"]
+"leduc.agents.bayesian" = ["models/*.json"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

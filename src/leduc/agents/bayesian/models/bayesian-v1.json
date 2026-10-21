@@ -1,0 +1,551 @@
+{
+  "alpha": 1.0,
+  "metadata": {
+    "backoff": [
+      "full context",
+      "card/public/legal",
+      "legal",
+      "uniform"
+    ],
+    "deal_policy": "independent",
+    "decisions_by_style": {
+      "aggressive": 8451,
+      "balanced": 7607,
+      "bluff-heavy": 8300,
+      "calling-heavy": 8878,
+      "tight": 6555
+    },
+    "features": [
+      "private_rank",
+      "public_rank",
+      "legal_actions",
+      "to_call",
+      "raises"
+    ],
+    "generator_version": 1,
+    "hands_per_style": 5000,
+    "heldout_hands_per_style": 1000,
+    "heldout_metrics": {
+      "action_accuracy": 0.514763161201156,
+      "backoff_levels": {
+        "0": 7959
+      },
+      "decisions": 7959,
+      "negative_log_likelihood": 0.9540923114471876,
+      "uniform_negative_log_likelihood": 1.0734967844215748
+    },
+    "heldout_seed": 94701,
+    "mixture": "Pooled decisions from equal hands per style; no online style inference",
+    "rlcard_version": "1.2.0",
+    "styles": {
+      "aggressive": [
+        3.0,
+        0.3,
+        0.8,
+        0.35
+      ],
+      "balanced": [
+        1.2,
+        1.0,
+        1.2,
+        0.15
+      ],
+      "bluff-heavy": [
+        1.2,
+        0.6,
+        0.8,
+        1.8
+      ],
+      "calling-heavy": [
+        0.35,
+        0.15,
+        4.0,
+        0.03
+      ],
+      "tight": [
+        0.7,
+        2.5,
+        0.7,
+        0.02
+      ]
+    },
+    "training_seed": 4701
+  },
+  "schema_version": 1,
+  "tables": [
+    {
+      "J|-|call,fold,raise|1|0": [
+        1560,
+        1024,
+        1561,
+        0
+      ],
+      "J|-|call,fold,raise|2|1": [
+        736,
+        386,
+        724,
+        0
+      ],
+      "J|-|call,fold|2|2": [
+        155,
+        0,
+        266,
+        0
+      ],
+      "J|-|check,fold,raise|0|0": [
+        0,
+        363,
+        482,
+        1053
+      ],
+      "J|J|call,fold,raise|4|1": [
+        112,
+        59,
+        3,
+        0
+      ],
+      "J|J|call,fold|4|2": [
+        57,
+        0,
+        1,
+        0
+      ],
+      "J|J|check,fold,raise|0|0": [
+        0,
+        285,
+        10,
+        308
+      ],
+      "J|K|call,fold,raise|4|1": [
+        127,
+        63,
+        113,
+        0
+      ],
+      "J|K|call,fold|4|2": [
+        34,
+        0,
+        39,
+        0
+      ],
+      "J|K|check,fold,raise|0|0": [
+        0,
+        252,
+        225,
+        607
+      ],
+      "J|Q|call,fold,raise|4|1": [
+        159,
+        63,
+        152,
+        0
+      ],
+      "J|Q|call,fold|4|2": [
+        27,
+        0,
+        46,
+        0
+      ],
+      "J|Q|check,fold,raise|0|0": [
+        0,
+        235,
+        232,
+        656
+      ],
+      "K|-|call,fold,raise|1|0": [
+        2287,
+        1675,
+        302,
+        0
+      ],
+      "K|-|call,fold,raise|2|1": [
+        1010,
+        712,
+        167,
+        0
+      ],
+      "K|-|call,fold|2|2": [
+        593,
+        0,
+        89,
+        0
+      ],
+      "K|-|check,fold,raise|0|0": [
+        0,
+        684,
+        105,
+        991
+      ],
+      "K|J|call,fold,raise|4|1": [
+        286,
+        157,
+        118,
+        0
+      ],
+      "K|J|call,fold|4|2": [
+        101,
+        0,
+        27,
+        0
+      ],
+      "K|J|check,fold,raise|0|0": [
+        0,
+        483,
+        235,
+        952
+      ],
+      "K|K|call,fold,raise|4|1": [
+        119,
+        80,
+        4,
+        0
+      ],
+      "K|K|call,fold|4|2": [
+        72,
+        0,
+        5,
+        0
+      ],
+      "K|K|check,fold,raise|0|0": [
+        0,
+        361,
+        12,
+        422
+      ],
+      "K|Q|call,fold,raise|4|1": [
+        257,
+        147,
+        100,
+        0
+      ],
+      "K|Q|call,fold|4|2": [
+        88,
+        0,
+        37,
+        0
+      ],
+      "K|Q|check,fold,raise|0|0": [
+        0,
+        449,
+        186,
+        912
+      ],
+      "Q|-|call,fold,raise|1|0": [
+        1961,
+        1353,
+        861,
+        0
+      ],
+      "Q|-|call,fold,raise|2|1": [
+        956,
+        558,
+        439,
+        0
+      ],
+      "Q|-|call,fold|2|2": [
+        388,
+        0,
+        193,
+        0
+      ],
+      "Q|-|check,fold,raise|0|0": [
+        0,
+        542,
+        242,
+        1044
+      ],
+      "Q|J|call,fold,raise|4|1": [
+        242,
+        110,
+        157,
+        0
+      ],
+      "Q|J|call,fold|4|2": [
+        49,
+        0,
+        50,
+        0
+      ],
+      "Q|J|check,fold,raise|0|0": [
+        0,
+        357,
+        246,
+        789
+      ],
+      "Q|K|call,fold,raise|4|1": [
+        217,
+        108,
+        117,
+        0
+      ],
+      "Q|K|call,fold|4|2": [
+        61,
+        0,
+        45,
+        0
+      ],
+      "Q|K|check,fold,raise|0|0": [
+        0,
+        347,
+        230,
+        815
+      ],
+      "Q|Q|call,fold,raise|4|1": [
+        111,
+        61,
+        3,
+        0
+      ],
+      "Q|Q|call,fold|4|2": [
+        69,
+        0,
+        3,
+        0
+      ],
+      "Q|Q|check,fold,raise|0|0": [
+        0,
+        315,
+        9,
+        343
+      ]
+    },
+    {
+      "J|-|call,fold": [
+        155,
+        0,
+        266,
+        0
+      ],
+      "J|-|call,fold,raise": [
+        2296,
+        1410,
+        2285,
+        0
+      ],
+      "J|-|check,fold,raise": [
+        0,
+        363,
+        482,
+        1053
+      ],
+      "J|J|call,fold": [
+        57,
+        0,
+        1,
+        0
+      ],
+      "J|J|call,fold,raise": [
+        112,
+        59,
+        3,
+        0
+      ],
+      "J|J|check,fold,raise": [
+        0,
+        285,
+        10,
+        308
+      ],
+      "J|K|call,fold": [
+        34,
+        0,
+        39,
+        0
+      ],
+      "J|K|call,fold,raise": [
+        127,
+        63,
+        113,
+        0
+      ],
+      "J|K|check,fold,raise": [
+        0,
+        252,
+        225,
+        607
+      ],
+      "J|Q|call,fold": [
+        27,
+        0,
+        46,
+        0
+      ],
+      "J|Q|call,fold,raise": [
+        159,
+        63,
+        152,
+        0
+      ],
+      "J|Q|check,fold,raise": [
+        0,
+        235,
+        232,
+        656
+      ],
+      "K|-|call,fold": [
+        593,
+        0,
+        89,
+        0
+      ],
+      "K|-|call,fold,raise": [
+        3297,
+        2387,
+        469,
+        0
+      ],
+      "K|-|check,fold,raise": [
+        0,
+        684,
+        105,
+        991
+      ],
+      "K|J|call,fold": [
+        101,
+        0,
+        27,
+        0
+      ],
+      "K|J|call,fold,raise": [
+        286,
+        157,
+        118,
+        0
+      ],
+      "K|J|check,fold,raise": [
+        0,
+        483,
+        235,
+        952
+      ],
+      "K|K|call,fold": [
+        72,
+        0,
+        5,
+        0
+      ],
+      "K|K|call,fold,raise": [
+        119,
+        80,
+        4,
+        0
+      ],
+      "K|K|check,fold,raise": [
+        0,
+        361,
+        12,
+        422
+      ],
+      "K|Q|call,fold": [
+        88,
+        0,
+        37,
+        0
+      ],
+      "K|Q|call,fold,raise": [
+        257,
+        147,
+        100,
+        0
+      ],
+      "K|Q|check,fold,raise": [
+        0,
+        449,
+        186,
+        912
+      ],
+      "Q|-|call,fold": [
+        388,
+        0,
+        193,
+        0
+      ],
+      "Q|-|call,fold,raise": [
+        2917,
+        1911,
+        1300,
+        0
+      ],
+      "Q|-|check,fold,raise": [
+        0,
+        542,
+        242,
+        1044
+      ],
+      "Q|J|call,fold": [
+        49,
+        0,
+        50,
+        0
+      ],
+      "Q|J|call,fold,raise": [
+        242,
+        110,
+        157,
+        0
+      ],
+      "Q|J|check,fold,raise": [
+        0,
+        357,
+        246,
+        789
+      ],
+      "Q|K|call,fold": [
+        61,
+        0,
+        45,
+        0
+      ],
+      "Q|K|call,fold,raise": [
+        217,
+        108,
+        117,
+        0
+      ],
+      "Q|K|check,fold,raise": [
+        0,
+        347,
+        230,
+        815
+      ],
+      "Q|Q|call,fold": [
+        69,
+        0,
+        3,
+        0
+      ],
+      "Q|Q|call,fold,raise": [
+        111,
+        61,
+        3,
+        0
+      ],
+      "Q|Q|check,fold,raise": [
+        0,
+        315,
+        9,
+        343
+      ]
+    },
+    {
+      "call,fold": [
+        1694,
+        0,
+        801,
+        0
+      ],
+      "call,fold,raise": [
+        10140,
+        6556,
+        4821,
+        0
+      ],
+      "check,fold,raise": [
+        0,
+        4673,
+        2214,
+        8892
+      ]
+    }
+  ]
+}

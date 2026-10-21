@@ -77,7 +77,7 @@ def test_dropdown_switch_and_restart():
 
 
 def test_search_betting_transitions_match_rlcard():
-    from leduc.agents.bayesian_agent import advance, legal_actions
+    from leduc.agents.bayesian.agent import advance, legal_actions
     log = io.StringIO()
     run_match((RandomAgent(), RandomAgent()), hands=100, seed=91, log=log)
     for line in log.getvalue().splitlines():

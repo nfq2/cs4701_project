@@ -13,7 +13,9 @@ scope; this plan follows the explicit scope reduction.
 
 - Pinned RLCard Leduc environment, immutable player observations, legal-action
   validation, terminal feedback with folded opponent cards hidden.
-- Fixed Bayesian agent with per-hand card beliefs and a fixed opponent model.
+- Fixed Bayesian agent with per-hand card beliefs, expected-payoff search, and
+  frozen action likelihoods estimated from simulated opponent styles. Includes
+  reproducible generation, smoothing/backoff, and held-out likelihood scoring.
 - Random baseline, paired deals with swapped seats, JSONL decisions/payoffs,
   timing, and integration checks.
 - Local human-play UI, independent deals, alternating seats, and session logs.
