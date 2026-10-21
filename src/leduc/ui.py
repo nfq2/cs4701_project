@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import rlcard
 
-from leduc.agents import RandomAgent
+from leduc.agents import AGENTS
 from leduc.interface import ActionEvent, HandResult
 from leduc.runner import BIG_BLIND_CHIPS, make_observation
 
@@ -20,10 +20,13 @@ from leduc.runner import BIG_BLIND_CHIPS, make_observation
 class HumanGame:
     """One human session. Browser state never contains hidden opponent cards."""
 
-    def __init__(self, seed=None, log=None):
+    def __init__(self, seed=None, log=None, opponent="random"):
         self.seed = secrets.randbits(32) if seed is None else seed
         self.env = rlcard.make("leduc-holdem", config={"seed": self.seed})
-        self.agent = RandomAgent()
+        if not isinstance(opponent, str) or opponent not in AGENTS:
+            raise ValueError("Unknown opponent.")
+        self.opponent = opponent
+        self.agent = AGENTS[opponent]["factory"]()
         self.agent.on_match_start(seed=self.seed ^ 0xA5A5A5A5)
         self.log = log
         self.hand_index = -1
@@ -32,7 +35,7 @@ class HumanGame:
         self.completed = 0
         self.last_payoff = None
         self.emit({"type": "session_start", "seed": self.seed,
-                   "opponent": "random", "payoff_unit": "chips",
+                   "opponent": self.opponent, "payoff_unit": "chips",
                    "deal_policy": "independent_hands_alternating_seats"})
         self.next_hand()
 
@@ -40,6 +43,29 @@ class HumanGame:
         if self.log:
             self.log.write(json.dumps(record) + "\n")
             self.log.flush()
+
+    def restart(self):
+        revision = self.revision
+        self.emit({"type": "session_end", "reason": "restart",
+                   "opponent": self.opponent, "completed": self.completed,
+                   "total_chips": self.total})
+        self.__init__(log=self.log, opponent=self.opponent)
+        self.revision = revision + 1
+        return self.view()
+
+    def change_opponent(self, opponent):
+        if not isinstance(opponent, str) or opponent not in AGENTS:
+            raise ValueError("Unknown opponent.")
+        if opponent == self.opponent:
+            return self.view()
+        # Explicitly start a fresh session; never mix scores across opponents.
+        revision = self.revision
+        self.emit({"type": "session_end", "reason": "opponent_changed",
+                   "opponent": self.opponent, "completed": self.completed,
+                   "total_chips": self.total})
+        self.__init__(seed=self.seed, log=self.log, opponent=opponent)
+        self.revision = revision + 1
+        return self.view()
 
     def next_hand(self):
         if self.hand_index >= 0 and not self.env.is_over():
@@ -68,7 +94,7 @@ class HumanGame:
         observation = self.observation()
         if action not in observation.legal_actions:
             raise ValueError("That action is not legal right now.")
-        self.emit({"type": "action", "actor": "human" if self.seat == self.human_seat else "random",
+        self.emit({"type": "action", "actor": "human" if self.seat == self.human_seat else self.opponent,
                    "observation": asdict(observation), "action": action,
                    "decision_seconds": elapsed})
         self.history.append(ActionEvent(self.seat, observation.round_index, action))
@@ -113,6 +139,10 @@ class HumanGame:
         opponent_card = self.env.get_state(self.bot_seat)["raw_obs"]["hand"] if showdown else None
         contributions = [int(v) for v in raw["all_chips"]]
         return {
+            "opponent": self.opponent,
+            "opponent_name": AGENTS[self.opponent]["name"],
+            "opponents": [{"id": key, "name": spec["name"], "description": spec["description"]}
+                          for key, spec in AGENTS.items()],
             "revision": self.revision, "hand": self.hand_index + 1,
             "completed": self.completed, "total_chips": self.total,
             "payoff": self.last_payoff, "over": over, "showdown": showdown,
@@ -125,7 +155,7 @@ class HumanGame:
             "to_call": max(contributions) - contributions[self.human_seat],
             "raise_by": 4 if raw["public_card"] else 2,
             "legal_actions": list(self.state["raw_legal_actions"]) if not over else [],
-            "history": [{"actor": "You" if e.seat == self.human_seat else "Random agent",
+            "history": [{"actor": "You" if e.seat == self.human_seat else AGENTS[self.opponent]["name"],
                          "round": e.round_index + 1, "action": e.action} for e in self.history],
         }
 
@@ -180,6 +210,10 @@ def make_handler(game):
                     return
                 if self.path == "/api/action":
                     state = game.act(data.get("action"))
+                elif self.path == "/api/restart":
+                    state = game.restart()
+                elif self.path == "/api/opponent":
+                    state = game.change_opponent(data.get("opponent"))
                 elif self.path == "/api/next":
                     state = game.next_hand()
                 else:

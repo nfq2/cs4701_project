@@ -2,19 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Leduc — The Poker Lab</title><link rel="stylesheet" href="/style.css">
+  <title>Leduc</title><link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
-<header><a class="brand" href="/">♠ <span>LEDUC<span class="brand-sub">THE POKER LAB</span></span></a><span class="live"><i></i> Human vs. AI</span></header>
+<header><a class="brand" href="/">♠ <span>LEDUC</span></a><span class="live"><i></i> Human vs. AI</span></header>
 <main>
-  <div class="intro"><div><p class="eyebrow">SIX CARDS. EVERY DECISION COUNTS.</p><h1>Take a seat.</h1><p>A small deck. A little uncertainty. Your move.</p></div><button class="text-button" id="rules-button" aria-expanded="false" aria-controls="rules">How to play <span>↗</span></button></div>
+  <div class="intro"><div><p class="eyebrow">SIX CARDS. EVERY DECISION COUNTS.</p><h1>Take a seat.</h1><p>A small deck. A little uncertainty. Your move.</p></div><button class="text-button" id="rules-button" aria-expanded="false" aria-controls="rules">How to play</button></div>
   <section id="rules" class="rules" hidden><h2>A quick guide to Leduc</h2><p>The deck has two Jacks, two Queens, and two Kings. You and the agent each get one private card. Bet once, then a shared card is revealed for a second betting round. A pair with the shared card wins; otherwise, the higher private rank wins. Equal ranks split the pot.</p><p><b>Check</b> passes when no chips are owed. <b>Call</b> matches the bet. <b>Raise</b> increases it. <b>Fold</b> gives up the hand. Blinds are 1 and 2 chips; raises are 2 chips in round 1 and 4 in round 2, with two raises allowed per round. Your score is net chips won, not a limited bankroll.</p></section>
+  <section class="opponent-picker" aria-label="Choose opponent">
+    <label for="opponent-select">Play against</label>
+    <select id="opponent-select"></select>
+    <button id="opponent-button" class="text-button">Play selected agent</button>
+    <button id="restart-button" class="text-button">Restart session</button>
+    <p>Restarting or changing opponents starts a new session and resets your score.</p>
+  </section>
   <div class="layout">
     <section class="game" aria-label="Poker table">
       <div class="table-top"><span id="hand-label">HAND 01</span><span id="round-label">ROUND 1 OF 2</span></div>
       <div class="felt">
-        <div class="opponent"><div class="player-label"><span class="avatar">R</span><div><strong>Random agent</strong><span>YOUR OPPONENT</span></div></div><div id="bot-card" class="card back" aria-label="Opponent card hidden"><span>♠</span></div><p class="commit" id="bot-bet">In for 2 chips</p></div>
+        <div class="opponent"><div class="player-label"><span class="avatar" id="bot-avatar">R</span><div><strong id="bot-name">Random agent</strong><span>YOUR OPPONENT</span></div></div><div id="bot-card" class="card back" aria-label="Opponent card hidden"><span>♠</span></div><p class="commit" id="bot-bet">In for 2 chips</p></div>
         <div class="community"><div class="pot"><span>TOTAL POT</span><strong id="pot">3 <small>chips</small></strong></div><div id="public-card" class="card empty" aria-label="Public card not dealt"><span>?</span></div><span class="community-caption">SHARED CARD</span></div>
         <div class="human"><div id="human-card" class="card" aria-label="Your card"></div><div class="human-info"><strong>You <span class="you-tag">PLAYER</span></strong><span id="blind">Small blind</span><span class="commit" id="human-bet">In for 1 chip</span></div></div>
         <div class="table-watermark" aria-hidden="true">LEDUC / 06</div>
@@ -24,7 +31,7 @@
     <aside>
       <section class="score-panel"><p class="eyebrow">YOUR SESSION</p><div class="score"><strong id="score">0</strong><span>net chips</span></div><div class="score-bottom"><span>Hands completed</span><strong id="completed">0</strong></div></section>
       <section class="history-panel"><div class="panel-title"><h2>At the table</h2><span>THIS HAND</span></div><ol id="history"><li class="muted">The blinds are in. Let’s play.</li></ol></section>
-      <div class="note"><span>♧</span><p><strong>A baseline worth knowing.</strong>The random agent chooses equally among legal actions. It doesn’t judge its cards or learn your strategy.</p></div>
+      <div class="note"><span>♧</span><p id="opponent-description"><strong>A baseline worth knowing.</strong>The random agent chooses equally among legal actions. It doesn’t judge its cards or learn your strategy.</p></div>
     </aside>
   </div>
   <footer><span>CS 4701 <span class="footer-divider">/</span> AGENT RESEARCH</span><span>Two players · Six cards · Two betting rounds</span></footer>

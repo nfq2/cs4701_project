@@ -73,3 +73,35 @@ def test_session_seed_replays_human_actions():
             action = games[0].view()['legal_actions'][0]
             for game in games:
                 game.act(action)
+
+
+
+def test_opponent_selection_validates_choices_without_changing_game():
+    game = HumanGame(seed=123)
+    before = game.view()
+    assert [o['id'] for o in before['opponents']] == ['random']
+    assert game.change_opponent('random') == before
+    for invalid in ('missing', None, [], {}):
+        with pytest.raises(ValueError):
+            game.change_opponent(invalid)
+        assert game.view() == before
+
+
+
+def test_restart_resets_score_and_hand_and_keeps_opponent():
+    log = io.StringIO()
+    game = HumanGame(seed=123, log=log)
+    game.act('fold')
+    revision = game.revision
+    view = game.restart()
+    assert view['hand'] == 1
+    assert view['completed'] == 0
+    assert view['total_chips'] == 0
+    assert view['opponent'] == 'random'
+    assert view['revision'] > revision
+    assert view['opponent_card'] is None
+    # Restart is also available during an unfinished hand.
+    revision = view['revision']
+    assert game.restart()['revision'] > revision
+    records = [json.loads(line) for line in log.getvalue().splitlines()]
+    assert sum(r['type'] == 'session_end' and r['reason'] == 'restart' for r in records) == 2

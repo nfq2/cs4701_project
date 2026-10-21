@@ -30,6 +30,20 @@ function actionButton(label, action, style = '', next = false) {
 }
 function render() {
   if (!state) return;
+  const picker = $('opponent-select');
+  if (!picker.options.length) {
+    for (const opponent of state.opponents) {
+      const option = document.createElement('option');
+      option.value = opponent.id; option.textContent = opponent.name; picker.append(option);
+    }
+  }
+  if (!busy) picker.value = state.opponent;
+  picker.disabled = busy;
+  $('opponent-button').disabled = busy;
+  $('restart-button').disabled = busy;
+  $('bot-name').textContent = state.opponent_name;
+  $('bot-avatar').textContent = state.opponent_name[0];
+  $('opponent-description').textContent = state.opponents.find(o => o.id === state.opponent).description;
   card('human-card', state.human_card);
   card('bot-card', state.opponent_card, true);
   card('public-card', state.public_card);
@@ -88,6 +102,8 @@ async function send(url, body) {
     $('error').hidden = false;
   } finally { busy = false; render(); }
 }
+$('restart-button').addEventListener('click', () => send('/api/restart', {}));
+$('opponent-button').addEventListener('click', () => send('/api/opponent', {opponent: $('opponent-select').value}));
 $('rules-button').addEventListener('click', () => {
   $('rules').hidden = !$('rules').hidden;
   $('rules-button').setAttribute('aria-expanded', String(!$('rules').hidden));
