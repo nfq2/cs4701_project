@@ -1,6 +1,7 @@
 from .random_agent import RandomAgent
 from .bayesian import BayesianAgent
 from .llm_agent import LLMAgent, MemoryLLMAgent
+from .reinforcement_learning import QLearningAgent
 
 # Register additional agents here once they are implemented.
 AGENTS = {
@@ -21,6 +22,11 @@ AGENTS = {
         "factory": lambda: MemoryLLMAgent(model="openai/gpt-oss-120b", provider="groq",
                                            reasoning_effort="low", max_completion_tokens=2048),
     },
+    "qlearning": {
+        "name": "Q-learning agent",
+        "description": "Plays a strategy it learned only from self-play: tabular Q-learning. Frozen during play and does not learn opponents' strategy.",
+        "factory": QLearningAgent,
+    },
     "random": {
         "name": "Random agent",
         "description": "Chooses equally among legal actions. Does not learn your strategy.",
@@ -28,4 +34,4 @@ AGENTS = {
     },
 }
 
-__all__ = ["RandomAgent", "BayesianAgent", "LLMAgent", "MemoryLLMAgent", "AGENTS"]
+__all__ = ["RandomAgent", "BayesianAgent", "LLMAgent", "MemoryLLMAgent", "QLearningAgent", "AGENTS"]

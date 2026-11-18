@@ -230,11 +230,13 @@ src/leduc/interface.py           Observations, feedback, agent contract
 src/leduc/agents/random_agent.py Uniform legal-action baseline
 src/leduc/agents/llm_agent.py    LLM prompt, API adapter, validation and limits
 src/leduc/agents/factory.py      Shared CLI agent selection
+src/leduc/agents/reinforcement_learning/  Self-play Q-learning agent, trainer, frozen Q-table
 src/leduc/runner.py              RLCard adapter, paired matches, CLI, JSONL
 src/leduc/ui.py                  Local human-versus-agent server
 src/leduc/web/                   Browser interface (HTML, CSS, JavaScript)
 tests/test_runner.py             Integration and information-boundary checks
 tests/test_ui.py                 Human gameplay, scoring, and card privacy
+tests/test_qlearning.py          Q-learning updates, persistence, and match legality
 docs/work-plan.md                Balanced ownership and sequential milestones
 ```
 
@@ -290,3 +292,29 @@ against these styles does not establish performance against humans.
 `BayesianAgent(model_path="...")` can load another frozen snapshot. Change the
 bundled snapshot only through an explicit offline training run, and freeze it
 before final evaluation. Model metadata is included in match/session logs.
+
+## Q-learning agent
+
+Select **Q-learning agent** in the browser, or use `--agent-a qlearning` with the
+runner. The agent has no built-in strategy rules. It learned only through self-play:
+two copies sharing one Q-table play each other through the standard runner,
+explore legal actions epsilon-greedily, and are rewarded with net chips at
+the end of each hand (0 for intermediate decisions, discount 1). The update is the
+standard tabular rule `Q(s,a) += alpha * (r + gamma * max Q(s',a') - Q(s,a))`,
+where `s'` is the agent's next decision in the same hand.
+
+The state is `own rank | public rank | position | betting sequence per round`,
+for example `K|J|bb|rc/k`. The deployed agent loads the frozen table from
+`src/leduc/agents/reinforcement_learning/models/qlearning-v1.json` and plays greedily. 
+It does not learn during matches or human play.
+
+### Reproducing training
+
+```sh
+python -m leduc.agents.reinforcement_learning.train --hands 200000 --alpha 0.01 --epsilon-start 0.3 --epsilon-end 0.02 --seed 4701 --eval-seed 94701 --output results/qlearning-rerun.json
+```
+
+This trains for about a minute. To evaluate the model's progress, every 10,000 hands, a 
+copy of the model plays 2,000 hands against the random agent (evaluation seed 94701). The results do not influence the model and will be used for final analysis in our report. 
+
+`QLearningAgent(model_path="...")` loads another snapshot.

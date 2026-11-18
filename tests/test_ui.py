@@ -79,7 +79,7 @@ def test_session_seed_replays_human_actions():
 def test_opponent_selection_validates_choices_without_changing_game():
     game = HumanGame(seed=123)
     before = game.view()
-    assert {o['id'] for o in before['opponents']} == {'random', 'bayesian', 'llm', 'llm-memory'}
+    assert {o['id'] for o in before['opponents']} == {'random', 'bayesian', 'llm', 'llm-memory', 'qlearning'}
     assert game.change_opponent('random') == before
     for invalid in ('missing', None, [], {}):
         with pytest.raises(ValueError):
